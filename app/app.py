@@ -11,12 +11,14 @@ app = Flask(__name__)
 # Load models
 MODEL_DIR = os.path.join(os.path.dirname(__file__), '../model')
 AUTOENCODER_PATH = os.path.join(MODEL_DIR, 'autoencoder.h5')
-CLASSIFIER_PATH = os.path.join(MODEL_DIR, 'leaf_classifier.h5')
+LEAF_CLASSIFIER_PATH = os.path.join(MODEL_DIR, 'leaf_classifier.h5')
 autoencoder = load_model(AUTOENCODER_PATH, compile=False)
-classifier = load_model(CLASSIFIER_PATH, compile=False)
+leaf_classifier = load_model(LEAF_CLASSIFIER_PATH, compile=False)
+
+LEAF_CLASS_NAMES = ['Non-Tomato', 'Tomato']
 
 IMG_SIZE = (128, 128)
-THRESHOLD = 0.07  # Set this based on your validation experiments
+THRESHOLD = 0.07
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -37,22 +39,28 @@ def index():
             filename = secure_filename(file.filename)
             filepath = os.path.join(static_dir, filename)
             file.save(filepath)
-            # Preprocess the image
+
             img = load_img(filepath, target_size=IMG_SIZE)
-            img_arr = img_to_array(img) / 255.0
-            img_arr = np.expand_dims(img_arr, axis=0)  # (1, 128, 128, 3)
+            img_arr = img_to_array(img)
+
+            
+            img_arr_auto = np.expand_dims(img_arr / 255.0, axis=0)
+            img_arr_class = np.expand_dims(img_arr, axis=0)
+
             # Step 1: Autoencoder for leaf vs. non-leaf
-            reconstructed = autoencoder.predict(img_arr)
-            reconstruction_error = np.mean(np.abs(img_arr - reconstructed))
+            reconstructed = autoencoder.predict(img_arr_auto)
+            reconstruction_error = np.mean(np.abs(img_arr_auto - reconstructed))
+            
             if reconstruction_error > THRESHOLD:
                 result = f"Not a leaf! (Reconstruction error: {reconstruction_error:.4f})"
             else:
-                # Step 2: Classifier for tomato vs. non-tomato
-                pred = classifier.predict(img_arr)
-                is_tomato = pred[0][0] > 0.5
-                label = 'Tomato leaf' if is_tomato else 'Non-tomato leaf'
-                confidence = pred[0][0] if is_tomato else 1 - pred[0][0]
-                result = f"Leaf detected! Classified as: <b>{label}</b> (Confidence: {confidence:.2%}, Reconstruction error: {reconstruction_error:.4f})"
+                # Step 2: Tomato vs Non-Tomato classifier
+                leaf_pred = leaf_classifier.predict(img_arr_class)
+                pred_class_idx = np.argmax(leaf_pred)
+                pred_class = LEAF_CLASS_NAMES[pred_class_idx]
+                confidence = np.max(leaf_pred)
+                result = f"Leaf detected!<br>Classified as: <b>{pred_class} leaf</b><br>Confidence: {confidence:.2%}<br>Reconstruction error: {reconstruction_error:.4f}"
+    
     return render_template('index.html', result=result, error=error, filename=filename)
 
 if __name__ == '__main__':
