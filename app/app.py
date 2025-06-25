@@ -5,6 +5,7 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.utils import img_to_array, load_img
 from werkzeug.utils import secure_filename
 import os
+import json
 
 app = Flask(__name__)
 
@@ -12,13 +13,19 @@ app = Flask(__name__)
 MODEL_DIR = os.path.join(os.path.dirname(__file__), '../model')
 AUTOENCODER_PATH = os.path.join(MODEL_DIR, 'autoencoder.h5')
 LEAF_CLASSIFIER_PATH = os.path.join(MODEL_DIR, 'leaf_classifier.h5')
+DISEASE_CLASSIFIER_PATH = os.path.join(MODEL_DIR, 'disease_classifer.h5')
 autoencoder = load_model(AUTOENCODER_PATH, compile=False)
 leaf_classifier = load_model(LEAF_CLASSIFIER_PATH, compile=False)
+disease_classifier = load_model(DISEASE_CLASSIFIER_PATH, compile=False)
+
+# Load disease class names
+with open(os.path.join(MODEL_DIR, 'tomato_classes.json'), 'r') as f:
+    DISEASE_CLASS_NAMES = json.load(f)
 
 LEAF_CLASS_NAMES = ['Non-Tomato', 'Tomato']
 
 IMG_SIZE = (128, 128)
-THRESHOLD = 0.07
+THRESHOLD = 0.075
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -59,7 +66,25 @@ def index():
                 pred_class_idx = np.argmax(leaf_pred)
                 pred_class = LEAF_CLASS_NAMES[pred_class_idx]
                 confidence = np.max(leaf_pred)
-                result = f"Leaf detected!<br>Classified as: <b>{pred_class} leaf</b><br>Confidence: {confidence:.2%}<br>Reconstruction error: {reconstruction_error:.4f}"
+                if pred_class == 'Tomato':
+                    # Step 3: Disease classifier (only for tomato leaves)
+                    disease_pred = disease_classifier.predict(img_arr_class)
+                    disease_idx = np.argmax(disease_pred)
+                    disease_class = DISEASE_CLASS_NAMES[disease_idx]
+                    disease_conf = np.max(disease_pred)
+                    result = (
+                        f"Leaf detected!<br>Classified as: <b>{pred_class} leaf</b>\n"
+                        f"<br>Disease: <b>{disease_class.replace('_', ' ')}</b>\n"
+                        f"<br>Disease confidence: {disease_conf:.2%}"
+                        f"<br>Leaf confidence: {confidence:.2%}"
+                        f"<br>Reconstruction error: {reconstruction_error:.4f}"
+                    )
+                else:
+                    result = (
+                        f"Leaf detected!<br>Classified as: <b>{pred_class} leaf</b>\n"
+                        f"<br>Confidence: {confidence:.2%}"
+                        f"<br>Reconstruction error: {reconstruction_error:.4f}"
+                    )
     
     return render_template('index.html', result=result, error=error, filename=filename)
 
