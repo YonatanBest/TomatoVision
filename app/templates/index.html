@@ -1,42 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Leaf Classifier: Tomato or Non-Tomato</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
     <style>
-        body { background: #f8f9fa; }
-        .container { max-width: 500px; margin-top: 50px; }
-        .result { font-size: 1.2em; margin-top: 20px; }
-        .img-preview { max-width: 100%; max-height: 300px; margin-top: 20px; border-radius: 8px; }
+      body {
+        background: #f8f9fa;
+      }
+      .container {
+        max-width: 500px;
+        margin-top: 50px;
+      }
+      .result {
+        font-size: 1.2em;
+        margin-top: 20px;
+      }
+      .img-preview {
+        max-width: 100%;
+        max-height: 300px;
+        margin-top: 20px;
+        border-radius: 8px;
+      }
+      .model-selection {
+        margin: 20px 0;
+      }
     </style>
-</head>
-<body>
-<div class="container shadow p-4 bg-white rounded">
-    <h2 class="mb-4 text-center">🍃 Leaf Classifier: Tomato or Non-Tomato</h2>
-    <form method="POST" enctype="multipart/form-data">
+  </head>
+  <body>
+    <div class="container shadow p-4 bg-white rounded">
+      <h2 class="mb-4 text-center">🍃 Leaf Detector</h2>
+      <form method="POST" enctype="multipart/form-data">
         <div class="mb-3">
-            <input class="form-control" type="file" name="image" accept="image/*" required>
+          <input
+            class="form-control"
+            type="file"
+            name="image"
+            accept="image/*"
+            required
+          />
+        </div>
+        <div class="model-selection">
+          <label class="form-label">Choose Detection Model:</label>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="model_choice" id="autoencoder_gray" value="autoencoder_gray" checked>
+            <label class="form-check-label" for="autoencoder_gray">
+              Autoencoder (Grayscale)
+            </label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="model_choice" id="autoencoder_color" value="autoencoder_color">
+            <label class="form-check-label" for="autoencoder_color">
+              Autoencoder (Color)
+            </label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="model_choice" id="gemini" value="gemini">
+            <label class="form-check-label" for="gemini">
+              Gemini (Online)
+            </label>
+          </div>
         </div>
         <div class="d-grid">
-            <button class="btn btn-success" type="submit">Upload & Classify</button>
+          <button class="btn btn-success" type="submit">
+            Upload & Detect
+          </button>
         </div>
-    </form>
-    {% if filename %}
-        <div class="text-center">
-            <img src="{{ url_for('static', filename=filename) }}" class="img-preview" alt="Uploaded Image">
-        </div>
-    {% endif %}
-    {% if result %}
-        <div class="alert alert-info result text-center">{{ result|safe }}</div>
-    {% endif %}
-    {% if error %}
-        <div class="alert alert-danger text-center">{{ error }}</div>
-    {% endif %}
-    <div class="text-center mt-3 text-muted">
-        <small>Upload a leaf or non-leaf image to test the detector.<br>Model threshold: 0.07</small>
+      </form>
+      {% if filename %}
+      <div class="text-center">
+        <img
+          src="{{ url_for('static', filename=filename) }}"
+          class="img-preview"
+          alt="Uploaded Image"
+        />
+      </div>
+      {% endif %} {% if result %}
+      <div class="alert alert-info result text-center">{{ result|safe }}</div>
+      {% endif %} {% if error %}
+      <div class="alert alert-danger text-center">{{ error }}</div>
+      {% endif %}
+      <div class="text-center mt-3 text-muted">
+        <small>Upload any image to detect if it contains a leaf.</small>
+      </div>
     </div>
-</div>
-</body>
+  </body>
 </html>
